@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -82,7 +82,7 @@ namespace WebApiProject.Controllers
             reader.Dispose();
             var data = JsonSerializer.Deserialize<List<Pokemon>>(json);
 
-            var dbPokemon = await _context.Pokemons.FindAsync(request.Id);
+            //var dbPokemon = await _context.Pokemons.FindAsync(request.Id);
 
             var pokeUpdate = data.Where(x => x.Id == request.Id).First();
 
@@ -217,11 +217,17 @@ namespace WebApiProject.Controllers
 
 
         [HttpGet("Battle_TesteAlfa")]
-        public async Task<ActionResult<List<Pokemon>>> GetBattle([FromQuery]int id1, [FromQuery] int id2)
+        public async Task<ActionResult<Pokemon>> GetBattle(int id1, int id2)
         {
 
-            var poke1 = await _context.Pokemons.FindAsync(id1);
-            var poke2 = await _context.Pokemons.FindAsync(id2);
+            //var pokemon = await _context.Pokemons.ToListAsync();
+
+            using var reader = new StreamReader(".\\data.json");
+            var json = await reader.ReadToEndAsync();
+            var data = JsonSerializer.Deserialize<List<Pokemon>>(json);
+
+            var poke1 = data.Where(x => x.Id == id1).First();
+            var poke2 = data.Where(x => x.Id == id2).First();
 
             var Poke1Battlepoints = poke1.Hp + poke1.Attack;
             var Poke2Battlepoints = poke2.Hp + poke2.Attack;
@@ -248,6 +254,106 @@ namespace WebApiProject.Controllers
                     Data = poke1 + "\n" + poke2
                 });
             }
+        }
+
+        [HttpGet("Get_Status")]
+        public async Task<ActionResult<List<Pokemon>>> GetHp()
+        {
+
+            using var reader = new StreamReader(".\\data.json");
+            var json = await reader.ReadToEndAsync();
+            var data = JsonSerializer.Deserialize<List<Pokemon>>(json);
+
+            var totalHP = 0;
+            var mediumHP = 0;
+
+            var totalAttack = 0;
+            var mediumAttack = 0;
+
+            var totalPoke = 0;
+
+            //MAIOR HP
+            var highestHP = int.MinValue;
+            var HighestHpName = "";
+
+
+            //MAIOR ATAQUE
+            var highestAttack = int.MinValue;
+            var HighestAttackName = "";
+
+            //LOOP
+            var breakLoop = true;
+
+            var resultHP = data.Where(x => x.Hp > totalHP).ToList();
+
+            while (breakLoop)
+            {
+
+                foreach (var poke in resultHP)
+                {
+                    if (poke.Hp > highestHP)
+                    {
+
+                        highestHP = poke.Hp;
+                        HighestHpName = poke.Name;
+
+                    }
+                }
+
+                breakLoop = false;
+
+            }
+
+            breakLoop = true;
+
+            var resultAttack = data.Where(x => x.Attack > totalAttack).ToList();
+
+            while (breakLoop)
+            {
+
+                foreach (var poke in resultAttack)
+                {
+                    if (poke.Attack > highestAttack)
+                    {
+
+                        highestAttack = poke.Attack;
+                        HighestAttackName = poke.Name;
+
+                    }
+                }
+
+                breakLoop = false;
+
+            }
+
+
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                totalPoke++;
+            }
+
+            //TOTAL DE HP
+            foreach (var poke in resultHP)
+            {
+                totalHP = totalHP + poke.Hp;
+            }
+
+            //MÉDIA DE HP
+            mediumHP = totalHP / totalPoke;
+
+            //TOTAL DE ATAQUE
+            foreach (var poke in resultAttack)
+            {
+                totalAttack = totalAttack + poke.Attack;
+            }
+
+            //MÉDIA DE ATAQUE
+            mediumAttack = totalAttack / totalPoke;
+
+            return Ok($"HP TOTAL = {totalHP} \nMÉDIA DE HP = {mediumHP} \nMAIOR HP = {highestHP} (Pokémon: {HighestHpName}) \n\nATAQUE TOTAL = {totalAttack} \nMÉDIA DE ATAQUE = {mediumAttack} " +
+                $"\nMAIOR ATAQUE = {highestAttack} (Pokémon: {HighestAttackName})");
+
         }
     }
 }
